@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -30,10 +31,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _register() {
-    // Aquí puedes agregar la lógica real de registro, validaciones, etc.
-    Navigator.pushReplacementNamed(context, '/home');
+  void _register() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+  final confirmPassword = _confirmPasswordController.text.trim();
+
+  if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Por favor completa todos los campos')),
+    );
+    return;
   }
+
+  if (password != confirmPassword) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Las contraseñas no coinciden')),
+    );
+    return;
+  }
+
+  try {
+    final response = await Supabase.instance.client.auth.signUp(
+      email: email,
+      password: password,
+    );
+
+    if (!mounted) return;
+
+    if (response.user != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('¡Registro exitoso! Revisa tu email para verificar tu cuenta.')),
+      );
+      // Navegar a login o a home dependiendo de tu flujo
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo registrar el usuario.')),
+      );
+    }
+  } on AuthException catch (error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${error.message}')),
+    );
+  } catch (error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error inesperado: $error')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {

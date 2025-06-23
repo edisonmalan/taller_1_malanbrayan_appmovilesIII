@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,10 +12,48 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  void _login() {
-    // Aquí puedes agregar lógica de login real
-    Navigator.pushReplacementNamed(context, '/home');
+  void _login() async {
+  final email = _emailController.text.trim();
+  final password = _passwordController.text.trim();
+
+  if (email.isEmpty || password.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Por favor ingresa email y contraseña')),
+    );
+    return;
   }
+
+  try {
+    final response = await Supabase.instance.client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+
+    if (!mounted) return; // Verifica que el widget siga montado antes de usar context
+
+    if (response.user != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('¡Inicio de sesión exitoso!')),
+      );
+      // Aquí NO haces navegación manual, el AuthGate detectará el cambio
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo iniciar sesión.')),
+      );
+    }
+  } on AuthException catch (error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error: ${error.message}')),
+    );
+  } catch (error) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Error inesperado: $error')),
+    );
+  }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -81,7 +120,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 16),
               TextButton(
-                onPressed: () => Navigator.pushReplacementNamed(context, '/register'),
+                onPressed: () =>
+                    Navigator.pushReplacementNamed(context, '/register'),
                 style: TextButton.styleFrom(
                   foregroundColor: theme.colorScheme.primary,
                   textStyle: const TextStyle(

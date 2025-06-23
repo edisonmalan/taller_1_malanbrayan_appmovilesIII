@@ -6,22 +6,25 @@ class HomeScreen extends StatelessWidget {
 
   final List<Map<String, String>> movies = [
     {
-      'title': 'Película 1',
-      'image': 'https://via.placeholder.com/150',
+      'title': 'WONDER WOMAN 1984',
+      'image': 'https://th.bing.com/th/id/OIP.pm4WNnDjnSQpp_ZxAp5UowHaKE?r=0&rs=1&pid=ImgDetMain/150',
       'description': 'Descripción breve de la película 1.',
       'category': 'Populares',
+      'route': '/movie_detail1',
     },
     {
-      'title': 'Película 2',
-      'image': 'https://via.placeholder.com/150',
+      'title': 'SONIC 3 LA PELICULA',
+      'image': 'https://th.bing.com/th/id/OIP.Fyt50kBonZzL4CO8yX3vLgHaK-?r=0&rs=1&pid=ImgDetMain/150',
       'description': 'Descripción breve de la película 2.',
       'category': 'Tendencias',
+      'route': '/movie_detail2',
     },
     {
-      'title': 'Película 3',
-      'image': 'https://via.placeholder.com/150',
+      'title': 'JURASSIC WORLD - RENACIDO',
+      'image': 'https://www.filmofilia.com/wp-content/uploads/2024/12/Jurassic-World-Rebirth-Poster.jpg/150',
       'description': 'Descripción breve de la película 3.',
       'category': 'Nuevas Llegadas',
+      'route': '/movie_detail3',
     },
   ];
 
@@ -49,7 +52,7 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         drawer: const AppDrawer(),
-        backgroundColor: theme.colorScheme.onSurface,
+        backgroundColor: theme.colorScheme.surface,
         body: TabBarView(
           children: [
             buildMovieList(context, movies),
@@ -83,7 +86,10 @@ class HomeScreen extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(16),
             onTap: () {
-              Navigator.pushNamed(context, '/movie_detail', arguments: movie);
+              final route = movie['route'];
+              if (route != null) {
+                Navigator.pushNamed(context, route);
+              }
             },
             child: Padding(
               padding: const EdgeInsets.all(12),

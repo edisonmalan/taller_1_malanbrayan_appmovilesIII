@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
-
-import 'screens/welcome_screen.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:taller_1_malan/screens/auth_gate.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
-import 'screens/movie_detail_screen.dart';
-import 'screens/movie_player_screen.dart';
+import 'screens/movie_detail_screen1.dart';
+import 'screens/movie_detail_screen2.dart';
+import 'screens/movie_detail_screen3.dart';
+
 import 'screens/movie_general_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(
+    url: 'https://icwkkknphaxzwykiwyqt.supabase.co', // <-- Cambia por tu URL real
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imljd2tra25waGF4end5a2l3eXF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTA0NTk4MjEsImV4cCI6MjA2NjAzNTgyMX0.YNUnxZEFMSXMyUixmSTcV_riFzu2_oTRe76Vy_zJhwU', // <-- Reemplaza con tu API Key anónima
+  );
   runApp(const MyApp());
 }
 
@@ -123,15 +130,18 @@ class MyApp extends StatelessWidget {
           floatingLabelStyle: const TextStyle(color: Colors.deepPurple),
         ),
       ),
-      home: const WelcomeScreen(),
+      home: const AuthGate(),
       routes: {
         
 '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
         '/home': (context) => HomeScreen(),
-        '/movie_detail': (context) => MovieDetailScreen(),
-        '/movie_player': (context) => MoviePlayerScreen(),
+       
+        
         '/movie_general': (context) => MovieGeneralScreen(),
+        '/movie_detail1': (context) => const MovieDetailScreen1(),
+        '/movie_detail2': (context) => const MovieDetailScreen2(),
+        '/movie_detail3': (context) => const MovieDetailScreen3(),
 
       },
     );
