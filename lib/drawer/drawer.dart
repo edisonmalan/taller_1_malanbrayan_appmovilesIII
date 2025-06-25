@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Asegúrate de importar esto
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
@@ -29,10 +30,21 @@ class AppDrawer extends StatelessWidget {
           ),
           ListTile(
             leading: const Icon(Icons.logout),
-            title: const Text('Salir'),
-            onTap: () {
-              // Opcional: limpiar estado o tokens aquí antes de salir
-              Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+            title: const Text('Cerrar Sesión'),
+            onTap: () async {
+              await Supabase.instance.client.auth.signOut(); // 🔐 Cierra sesión
+
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Sesión cerrada')),
+                );
+
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
+              }
             },
           ),
         ],

@@ -130,7 +130,7 @@ class MyApp extends StatelessWidget {
           floatingLabelStyle: const TextStyle(color: Colors.deepPurple),
         ),
       ),
-      home: const AuthGate(),
+      home:  AuthGate(),
       routes: {
         
 '/login': (context) => LoginScreen(),

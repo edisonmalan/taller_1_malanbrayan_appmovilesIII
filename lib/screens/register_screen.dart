@@ -1,5 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:mime/mime.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -18,9 +22,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   String? _selectedGender;
+  File? _selectedImage;
+  final _picker = ImagePicker();
 
   Future<void> _selectBirthDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+    final picked = await showDatePicker(
       context: context,
       initialDate: DateTime(2000, 1, 1),
       firstDate: DateTime(1900),
@@ -31,57 +37,101 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _register() async {
-  final email = _emailController.text.trim();
-  final password = _passwordController.text.trim();
-  final confirmPassword = _confirmPasswordController.text.trim();
-
-  if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Por favor completa todos los campos')),
-    );
-    return;
-  }
-
-  if (password != confirmPassword) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Las contraseñas no coinciden')),
-    );
-    return;
-  }
-
-  try {
-    final response = await Supabase.instance.client.auth.signUp(
-      email: email,
-      password: password,
-    );
-
-    if (!mounted) return;
-
-    if (response.user != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Registro exitoso! Revisa tu email para verificar tu cuenta.')),
-      );
-      // Navegar a login o a home dependiendo de tu flujo
-      Navigator.pushReplacementNamed(context, '/login');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo registrar el usuario.')),
-      );
+  Future<void> _pickImage() async {
+    final picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _selectedImage = File(picked.path);
+      });
     }
-  } on AuthException catch (error) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error: ${error.message}')),
-    );
-  } catch (error) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Error inesperado: $error')),
-    );
   }
+
+  Future<String?> _uploadImageToSupabase(String userId) async {
+    if (_selectedImage == null) return null;
+
+    final ext = p.extension(_selectedImage!.path);
+    final filePath = 'avatars/$userId/profile$ext';
+    final mimeType = lookupMimeType(_selectedImage!.path);
+
+    await Supabase.instance.client.storage.from('avatars').uploadBinary(
+      filePath,
+      _selectedImage!.readAsBytesSync(),
+      fileOptions: FileOptions(contentType: mimeType, upsert: true),
+    );
+
+    return Supabase.instance.client.storage.from('avatars').getPublicUrl(filePath);
+  }
+
+  void _register() async {final email = _emailController.text.trim();
+final password = _passwordController.text.trim();
+final confirmPassword = _confirmPasswordController.text.trim();
+
+if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Por favor completa todos los campos')),
+  );
+  return;
 }
 
+if (password != confirmPassword) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Las contraseñas no coinciden')),
+  );
+  return;
+}
+
+try {
+  final response = await Supabase.instance.client.auth.signUp(
+    email: email,
+    password: password,
+  );
+
+  final user = response.user;
+
+  if (user != null) {
+    // Subir imagen y guardar perfil
+    final imageUrl = await _uploadImageToSupabase(user.id);
+
+    await Supabase.instance.client.from('profiles').upsert({
+      'id': user.id,
+      'avatar_url': imageUrl,
+      'first_name': _firstNameController.text.trim(),
+      'last_name': _lastNameController.text.trim(),
+      'birth_date': _birthDateController.text.trim(),
+      'username': _usernameController.text.trim(),
+      'gender': _selectedGender,
+    });
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('¡Registro exitoso! Redirigiendo al inicio...')),
+    );
+
+    // ✅ Redirigir directamente al Home si hay sesión activa
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      Navigator.pushReplacementNamed(context, '/home');
+    } else {
+      Navigator.pushReplacementNamed(context, '/login'); // Por si acaso
+    }
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No se pudo registrar el usuario.')),
+    );
+  }
+} on AuthException catch (error) {
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Error: ${error.message}')),
+  );
+} catch (error) {
+  if (!mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Error inesperado: $error')),
+  );
+}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -91,7 +141,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         title: const Text('Registro'),
         centerTitle: true,
-        elevation: 0,
         backgroundColor: theme.colorScheme.primaryContainer,
         foregroundColor: theme.colorScheme.onPrimaryContainer,
       ),
@@ -100,6 +149,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
+              GestureDetector(
+                onTap: _pickImage,
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundImage: _selectedImage != null ? FileImage(_selectedImage!) : null,
+                  child: _selectedImage == null ? const Icon(Icons.camera_alt, size: 40) : null,
+                ),
+              ),
+              const SizedBox(height: 16),
               TextField(
                 controller: _firstNameController,
                 decoration: InputDecoration(
@@ -150,11 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   DropdownMenuItem(value: 'Femenino', child: Text('Femenino')),
                   DropdownMenuItem(value: 'Otro', child: Text('Otro')),
                 ],
-                onChanged: (value) {
-                  setState(() {
-                    _selectedGender = value;
-                  });
-                },
+                onChanged: (value) => setState(() => _selectedGender = value),
               ),
               const SizedBox(height: 16),
               TextField(

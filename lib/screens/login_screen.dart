@@ -29,13 +29,13 @@ class _LoginScreenState extends State<LoginScreen> {
       password: password,
     );
 
-    if (!mounted) return; // Verifica que el widget siga montado antes de usar context
+    if (!mounted) return;
 
     if (response.user != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('¡Inicio de sesión exitoso!')),
       );
-      // Aquí NO haces navegación manual, el AuthGate detectará el cambio
+      // NO navegues aquí, AuthGate manejará el cambio de pantalla automáticamente
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('No se pudo iniciar sesión.')),
@@ -53,6 +53,7 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
 
 
   @override
